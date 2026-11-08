@@ -1,5 +1,5 @@
 /*
-  NST COURSE — site behaviour
+  Fiancho Chess — site behaviour
   Plain JavaScript, no dependencies. Reads contact details from js/site-config.js
   and product data from js/products.js.
 */
@@ -43,7 +43,7 @@
   }
 
   function renderProducts() {
-    var products = window.NST_PRODUCTS || {};
+    var products = window.SITE_PRODUCTS || {};
 
     each(document.querySelectorAll('[data-price-for]'), function (el) {
       var product = products[el.getAttribute('data-price-for')];

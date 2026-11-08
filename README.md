@@ -1,6 +1,6 @@
-# NST COURSE
+# Fiancho Chess
 
-Static website for NST COURSE: self-paced chess training courses delivered as digital downloads (PDF workbook + PGN files).
+Static website for Fiancho Chess: self-paced chess training courses delivered as digital downloads (PDF workbook + PGN files).
 
 Plain HTML, CSS and JavaScript. No build step. Served by GitHub Pages from the root of `main`.
 

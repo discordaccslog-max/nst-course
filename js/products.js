@@ -1,10 +1,10 @@
 /*
-  NST COURSE — product data
+  Fiancho Chess — product data
   Prices are in USD. Each product page renders its price and buy button from this file.
   Leave checkoutUrl empty ("") and no buy button is shown on that product's page.
   Paste a checkout link between the quotes and the button appears automatically.
 */
-window.NST_PRODUCTS = {
+window.SITE_PRODUCTS = {
   "tactics-fundamentals": {
     name: "Tactics Fundamentals",
     price: 25,

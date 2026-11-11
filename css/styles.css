@@ -2204,3 +2204,52 @@ html.js .reveal.is-visible {
     transform: none;
   }
 }
+
+/* ---------- Terms agreement before checkout ---------- */
+.consent {
+  display: grid;
+  gap: 10px;
+}
+
+.consent__label {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 14px 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--surface);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.consent__box {
+  width: 20px;
+  height: 20px;
+  margin: 1px 0 0;
+  accent-color: var(--green);
+  cursor: pointer;
+}
+
+.consent__box:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.consent__hint {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+.btn.is-disabled,
+.btn.is-disabled:hover {
+  background: var(--surface-2);
+  color: var(--muted);
+  border-color: var(--line-strong);
+  cursor: not-allowed;
+  transform: none;
+}

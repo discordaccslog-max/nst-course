@@ -58,13 +58,67 @@
         removeNode(slot);
         return;
       }
-      var button = document.createElement('a');
-      button.className = 'btn btn--primary btn--block';
-      button.href = url;
-      button.textContent = 'Buy ' + product.name + ' · ' + formatPrice(product.price);
-      slot.appendChild(button);
+      slot.appendChild(buildGatedBuyButton(slot.getAttribute('data-buy-for'), product, url));
       slot.hidden = false;
     });
+  }
+
+  /* Terms agreement: the buy button stays disabled until the box is ticked.
+     Only built when a checkout link exists, so it never shows on its own. */
+  function buildGatedBuyButton(id, product, url) {
+    var wrap = document.createElement('div');
+    wrap.className = 'consent';
+
+    var checkboxId = 'agree-' + id;
+    var hintId = 'agree-hint-' + id;
+
+    var label = document.createElement('label');
+    label.className = 'consent__label';
+    label.setAttribute('for', checkboxId);
+
+    var checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.id = checkboxId;
+    checkbox.className = 'consent__box';
+    checkbox.setAttribute('aria-describedby', hintId);
+
+    var text = document.createElement('span');
+    text.innerHTML = 'I agree to the <a href="terms.html">Terms of Service</a> and <a href="refund-policy.html">Refund Policy</a>';
+
+    label.appendChild(checkbox);
+    label.appendChild(text);
+
+    var hint = document.createElement('p');
+    hint.className = 'consent__hint';
+    hint.id = hintId;
+    hint.setAttribute('aria-live', 'polite');
+
+    var button = document.createElement('a');
+    button.className = 'btn btn--primary btn--block';
+    button.textContent = 'Buy ' + product.name + ' · ' + formatPrice(product.price);
+    button.setAttribute('aria-describedby', hintId);
+
+    function sync() {
+      if (checkbox.checked) {
+        button.href = url;
+        button.removeAttribute('aria-disabled');
+        button.classList.remove('is-disabled');
+        hint.textContent = 'Thank you. You can now continue to checkout.';
+      } else {
+        button.removeAttribute('href');
+        button.setAttribute('aria-disabled', 'true');
+        button.classList.add('is-disabled');
+        hint.textContent = 'Please tick the box to agree to the Terms of Service and Refund Policy. The buy button is enabled once you do.';
+      }
+    }
+
+    checkbox.addEventListener('change', sync);
+    sync();
+
+    wrap.appendChild(label);
+    wrap.appendChild(hint);
+    wrap.appendChild(button);
+    return wrap;
   }
 
   /* ----- Footer year ----- */

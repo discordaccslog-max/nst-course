@@ -1,0 +1,22 @@
+{
+  "name": "fiancho-chess",
+  "private": true,
+  "type": "module",
+  "description": "Fiancho Chess website, browser-based training programs, and build tooling.",
+  "scripts": {
+    "site": "node tools/site/build.mjs",
+    "courses": "node tools/courses/build-courses.mjs",
+    "verify": "node tools/courses/verify.mjs",
+    "sw": "node tools/sw/build-sw.mjs",
+    "build": "npm run courses && npm run site && npm run sw",
+    "test": "node --test tests/unit/*.test.js && node tests/e2e/run.mjs",
+    "test:unit": "node --test tests/unit/*.test.js",
+    "test:e2e": "node tests/e2e/run.mjs",
+    "kit": "node tools/kit/build-kit.mjs"
+  },
+  "devDependencies": {
+    "chess.js": "^1.4.0",
+    "playwright-core": "^1.65.0",
+    "stockfish": "^19.0.1"
+  }
+}

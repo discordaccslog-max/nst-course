@@ -1,3 +1,5 @@
 .vercel
 .env*
 fulfillment-kit/
+node_modules/
+tools/cache/

@@ -96,16 +96,25 @@ async function sha256(text) {
   return new Uint8Array(await crypto.subtle.digest('SHA-256', data));
 }
 
+// Codes never spell these (checked across the whole code, so words split by dashes are caught too).
+const AVOID = /NSFW|SEX|XXX|FUCK|FUK|SHT|CUNT|DCK|DICK|COCK|PUSSY|NAZ|KKK|PORN|FAG|TWAT|ANAL|ANUS|CUM|NUDE|KYS|RAPE|ASS|WTF|STD|HATE|KXLL|DEAD|DRUG/;
+export const isAcceptable = (code) => !AVOID.test(code.replace(/-/g, ''));
+
 // Random section: from the order reference when present (same order -> same code), otherwise random.
+// A section that would make an unsuitable code is replaced by the next one (still deterministic per order).
 export async function randomSection(productCode, orderRef) {
-  const out = [];
-  if (orderRef) {
-    let round = 0;
-    while (out.length < RANDOM_LENGTH) mapBytes(await sha256(`fiancho-chess|${productCode}|${String(orderRef).trim()}|${round++}`), out, RANDOM_LENGTH);
-  } else {
-    while (out.length < RANDOM_LENGTH) mapBytes(crypto.getRandomValues(new Uint8Array(32)), out, RANDOM_LENGTH);
+  for (let attempt = 0; ; attempt++) {
+    const out = [];
+    if (orderRef) {
+      let round = attempt * 8;
+      while (out.length < RANDOM_LENGTH) mapBytes(await sha256(`fiancho-chess|${productCode}|${String(orderRef).trim()}|${round++}`), out, RANDOM_LENGTH);
+    } else {
+      while (out.length < RANDOM_LENGTH) mapBytes(crypto.getRandomValues(new Uint8Array(32)), out, RANDOM_LENGTH);
+    }
+    const section = out.join('');
+    const payload = productCode + section;
+    if (isAcceptable(PREFIX + payload + checkChar(payload))) return section;
   }
-  return out.join('');
 }
 
 export async function generate(slug, orderRef = null) {

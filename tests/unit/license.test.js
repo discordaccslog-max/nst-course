@@ -101,3 +101,15 @@ test('order reference is read from every supported URL parameter', () => {
   assert.equal(orderRefFrom('?utm=x'), null);
   assert.equal(orderRefFrom('?order_id=%20%20'), null);
 });
+
+test('codes never contain unsuitable words, and order-linked codes stay deterministic', async () => {
+  const { isAcceptable } = await import('../../js/license.js');
+  assert.equal(isAcceptable('FIAN-PS-337Y-ANM2-NSFW'), false);
+  assert.equal(isAcceptable('FIAN-PS-337Y-ANM2-NS2W'), true);
+  for (let i = 0; i < 3000; i++) assert.ok(isAcceptable(await generate('positional-play-strategy')));
+  for (let i = 0; i < 300; i++) {
+    const a = await generate('tactics-fundamentals', `ORD-${i}`);
+    assert.ok(isAcceptable(a));
+    assert.equal(a, await generate('tactics-fundamentals', `ORD-${i}`));
+  }
+});

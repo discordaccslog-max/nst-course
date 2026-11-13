@@ -14,9 +14,9 @@ import { Engine, scoreValue } from './engine.mjs';
 const CANDIDATES = new URL('../cache/candidates.json', import.meta.url);
 const OUT = new URL('./data/verified.json', import.meta.url);
 const quota = {
-  'tf-fork': 4, 'tf-pin': 4, 'tf-skewer': 4, 'tf-discovered': 4, 'tf-double': 4, 'tf-mixed': 8,
-  'cm-backrank': 4, 'cm-queen': 4, 'cm-rook': 4, 'cm-minor': 4, 'cm-sacrifice': 4, 'cm-mixed': 8,
-  'cv-short': 8, 'cv-long': 8, 'ps-quiet': 12, 'ee-pawn': 6, 'ee-rook': 6
+  'tf-fork': 5, 'tf-pin': 5, 'tf-skewer': 5, 'tf-discovered': 5, 'tf-double': 5, 'tf-mixed': 8,
+  'cm-backrank': 5, 'cm-queen': 5, 'cm-rook': 5, 'cm-minor': 5, 'cm-sacrifice': 5, 'cm-mixed': 8,
+  'cv-short': 9, 'cv-long': 9, 'ps-quiet': 13, 'ee-pawn': 7, 'ee-rook': 7
 };
 
 const EQUAL_CP = 60;        // a move within 60 centipawns of the best is "equally good"
@@ -75,11 +75,13 @@ async function verifyPosition(p) {
 
 const out = {};
 for (const [slot, want] of Object.entries(quota)) {
-  out[slot] = existing[slot] && existing[slot].length >= want ? existing[slot] : [];
+  out[slot] = existing[slot] ? existing[slot].slice(0, want) : [];
+  const have = new Set(out[slot].map((p) => p.id));
   if (out[slot].length >= want) { console.log(slot, 'already verified'); continue; }
   let tried = 0;
   for (const p of candidates[slot] || []) {
     if (out[slot].length >= want) break;
+    if (have.has(p.id)) continue;
     tried++;
     const res = await verifyPosition(p);
     if (res.ok) {

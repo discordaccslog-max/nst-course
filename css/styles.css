@@ -2253,3 +2253,14 @@ html.js .reveal.is-visible {
   cursor: not-allowed;
   transform: none;
 }
+
+/* ---------- Interactive-format additions ---------- */
+.feature-grid--four { grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 1080px) { .feature-grid--four { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 600px) { .feature-grid--four { grid-template-columns: 1fr; } }
+.contents-meta { margin-top: 6px !important; font-size: 0.88rem; font-weight: 600; letter-spacing: 0.02em; color: var(--walnut) !important; }
+.preview__shot { overflow: hidden; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); box-shadow: 0 22px 40px -26px rgba(var(--shadow-rgb), 0.6); }
+.preview__shot img { display: block; width: 100%; height: auto; }
+.btn:disabled,
+.btn[aria-disabled="true"] { opacity: 0.5; cursor: not-allowed; transform: none; }
+.btn:disabled:hover { transform: none; background: transparent; }

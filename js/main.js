@@ -333,6 +333,15 @@
     });
   }
 
+  /* ----- Offline support: the service worker caches the site and trainer ----- */
+  function registerServiceWorker() {
+    if (!('serviceWorker' in navigator) || location.protocol === 'file:') return;
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('/sw.js').catch(function () { /* offline support is optional */ });
+    });
+  }
+
+  registerServiceWorker();
   renderSupportEmail();
   renderProducts();
   renderYear();

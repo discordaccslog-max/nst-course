@@ -205,9 +205,23 @@ fs.writeFileSync(path.join(KIT, 'Business-Summary.txt'), summary.replace(/\n/g, 
 
 /* ---------------- overview PDF ---------------- */
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-const img = (f) => pathToFileURL(path.join(SHOTS, f)).href;
+// Images are embedded as JPEG data (smaller PDF, and no reliance on long file paths). Full-page shots are
+// cropped to the top of the page, as their captions say; the full PNGs stay in screenshots/.
+const conv = await chromium.launch({ channel: 'chrome' });
+const convPage = await conv.newPage({ viewport: { width: 1280, height: 860 } });
+const jpeg = {};
+for (const s of shots) {
+  const crop = s.step === 'product-page' || s.step === 'confirmation-page';
+  await convPage.setContent(`<html><body style="margin:0"><img id="i" style="display:block" src="data:image/png;base64,${fs.readFileSync(path.join(SHOTS, s.file)).toString('base64')}"></body></html>`);
+  const box = await convPage.locator('#i').boundingBox();
+  await convPage.setViewportSize({ width: Math.ceil(box.width), height: Math.min(Math.ceil(box.height), crop ? 1500 : 4000) });
+  const buf = await convPage.screenshot({ type: 'jpeg', quality: 76, clip: { x: 0, y: 0, width: box.width, height: Math.min(box.height, crop ? 1500 : 4000) } });
+  jpeg[s.file] = 'data:image/jpeg;base64,' + buf.toString('base64');
+}
+await conv.close();
+const img = (f) => jpeg[f];
 const STEP_ORDER = ['product-page', 'checkout-box-before', 'checkout-box-after', 'confirmation-page', 'confirmation-pdf', 'start-training', 'course-in-use', 'activate-product-page', 'owned-state', 'activate-training-room', 'training-room-unlocked'];
-const figure = (s, crop) => `<figure><div class="frame"${crop ? ' style="max-height:6.4in;overflow:hidden"' : ''}><img src="${img(s.file)}"></div><figcaption>${esc(s.caption)}<span>screenshots/${esc(s.file)}${crop ? ' (top of the page shown; the file is the full page)' : ''}</span></figcaption></figure>`;
+const figure = (s, crop) => `<figure><div class="frame"><img src="${img(s.file)}"></div><figcaption>${esc(s.caption)}<span>screenshots/${esc(s.file)}${crop ? ' (top of the page shown; the file is the full page)' : ''}</span></figcaption></figure>`;
 const productSections = SLUGS.map((slug) => {
   const list = STEP_ORDER.map((st) => shots.find((s) => s.slug === slug && s.step === st)).filter(Boolean);
   return `<section><h2>${esc(products[slug].name)}</h2><p class="meta">$${products[slug].price} USD · Product page: <a href="${BASE}/${slug}.html">${BASE}/${slug}.html</a> · Confirmation page: <a href="${BASE}${products[slug].confirmationPath}">${BASE}${products[slug].confirmationPath}</a></p>${list.map((s) => figure(s, s.step === 'product-page' || s.step === 'confirmation-page')).join('')}</section>`;
@@ -226,7 +240,7 @@ const html = `<!doctype html><html><head><meta charset="utf-8"><link rel="styles
   figure { margin: 10pt 0 16pt; break-inside: avoid; } .frame { border: 1pt solid #ddd3be; border-radius: 3pt; } .frame img { width: 100%; display: block; }
   figcaption { font-size: 8.8pt; color: #4d5951; margin-top: 4pt; } figcaption span { display: block; font-size: 7.6pt; color: #7b847d; }
   table { width: 100%; border-collapse: collapse; font-size: 9.4pt; } th, td { text-align: left; padding: 5pt 6pt; border-bottom: 1pt solid #ddd3be; } th { font-size: 7.8pt; text-transform: uppercase; letter-spacing: .1em; color: #6a4529; }
-  code { font: 700 9.6pt Inter, sans-serif; letter-spacing: .04em; } ol li, ul li { margin-bottom: 4pt; }
+  code { font: 700 9.6pt Inter, sans-serif; letter-spacing: .04em; white-space: nowrap; } ol li, ul li { margin-bottom: 4pt; }
 </style></head><body>
 <section class="first">
   <h1>Fiancho Chess</h1><p class="meta">Fulfillment overview · ${esc(BASE)} · Prepared ${esc(today)} from the live website</p>

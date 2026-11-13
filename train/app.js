@@ -35,7 +35,8 @@ let cleanup = null;
 function setView(html) {
   if (cleanup) { try { cleanup(); } catch { /* ignore */ } cleanup = null; }
   app.innerHTML = html;
-  window.scrollTo(0, 0);
+  // Jump straight to the top: a smooth scroll would still be moving the board when the learner taps it.
+  window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
 }
 
 function icon(ok) {
@@ -656,6 +657,7 @@ async function practiceView(ctx, item) {
   const { core, tables } = tb;
   const learner = item.fen.split(' ')[1];
   let game, history, finished, clean, learnerMoves, timers = [];
+  const seen = new Map(); // position -> times reached, so the trainer avoids needless repetition
   const board = makeBoard(ctx, item, { label: `Endgame practice. ${item.prompt}`, onMove: (f, t, p) => onMove(f, t, p) });
   const later = (fn, ms) => timers.push(setTimeout(fn, ms));
   const pieceCount = (fen) => fen.split(' ')[0].replace(/[^a-zA-Z]/g, '').length;
@@ -689,6 +691,7 @@ async function practiceView(ctx, item) {
   const reset = () => {
     timers.forEach(clearTimeout); timers = [];
     game = new C(item.fen); history = []; finished = false; clean = true; learnerMoves = 0;
+    seen.clear(); seen.set(item.fen.split(' ').slice(0, 4).join(' '), 1);
     render(); board.setPosition(item.fen, { animate: false }); board.setMovable(learner, legal);
     fb('Your move.'); counter();
   };
@@ -708,13 +711,20 @@ async function practiceView(ctx, item) {
       const wins = moves.filter((m) => m.value > 0).sort((a, b) => a.value - b.value);
       if (wins.length) return wins[0].uci;
       // Drawn: choose the try that gives the defender the most ways to go wrong.
-      let best = null, bestScore = -1;
+      let best = null, bestScore = -Infinity;
       for (const m of moves) {
         const g = new C(game.fen()); g.move({ from: m.uci.slice(0, 2), to: m.uci.slice(2, 4), promotion: m.uci[4] });
         if (pieceCount(g.fen()) < 3) continue;
         const replies = core.scoredMoves(tables, core.fromFen(g.fen()));
-        const traps = replies.filter((r) => r.value > 0 && !r.captured).length;
-        if (traps > bestScore) { bestScore = traps; best = m.uci; }
+        // Most ways for the defender to go wrong; a fresh position beats a repeated one at equal value.
+        const repeats = seen.get(g.fen().split(' ').slice(0, 4).join(' ')) || 0;
+        const losesPawn = replies.some((r) => r.captured) ? 1000 : 0;
+        // Keep the king beside its pawn: a king that wanders off simply loses the pawn a move later.
+        const np = core.fromFen(g.fen());
+        const dist = Math.max(Math.abs((np.wk & 7) - (np.x & 7)), Math.abs((np.wk >> 3) - (np.x >> 3)));
+        const away = dist > 1 ? (dist - 1) * 40 : 0;
+        const score = replies.filter((r) => r.value > 0 && !r.captured).length * 10 - repeats * 15 - losesPawn - away;
+        if (score > bestScore) { bestScore = score; best = m.uci; }
       }
       return best || moves[0].uci;
     }
@@ -724,9 +734,21 @@ async function practiceView(ctx, item) {
     return moves.sort((a, b) => b.value - a.value)[0].uci;
   };
 
+  // A draw by repetition or the fifty-move rule ends the exercise: a success when holding the draw
+  // is the goal, a failure when the goal is to win. Returns a truthy value once it has ended.
+  const drawByRule = () => {
+    const rep = game.isThreefoldRepetition(), fifty = game.isDrawByFiftyMoves();
+    if (!rep && !fifty) return false;
+    const why = rep ? 'The position repeated three times: a draw.' : 'Fifty moves without a capture or pawn move: a draw.';
+    end(item.goal === 'draw', item.goal === 'draw' ? `${why} Well defended.` : why);
+    return true;
+  };
+
   const after = (uci) => {
     const mv = game.move({ from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: uci[4] });
     history.push(uci);
+    const key = game.fen().split(' ').slice(0, 4).join(' ');
+    seen.set(key, (seen.get(key) || 0) + 1);
     board.setPosition(game.fen(), { lastMove: uci });
     return mv;
   };
@@ -756,7 +778,7 @@ async function practiceView(ctx, item) {
     if (item.goal === 'draw' && (pieceCount(game.fen()) < 3 || game.isStalemate())) return end(true, pieceCount(game.fen()) < 3 ? 'The pawn is gone: a draw. Well defended.' : 'Stalemate: a draw. Well defended.');
     if (item.goal === 'draw' && item.holdMoves && learnerMoves >= item.holdMoves) return end(true, `You held the draw for ${item.holdMoves} moves.`);
     if (item.goal === 'draw' && !item.holdMoves && learnerMoves >= 12) return end(true, 'You stopped the pawn. Well defended.');
-    if (game.isDrawByFiftyMoves() || game.isThreefoldRepetition()) return end(false, game.isThreefoldRepetition() ? 'The position repeated three times: a draw.' : 'Fifty moves without a capture or pawn move: a draw.');
+    if (drawByRule()) return drawByRule();
     board.setMovable(null);
     later(() => {
       const r = bestReply();
@@ -765,7 +787,7 @@ async function practiceView(ctx, item) {
       board.say(`Reply: ${rm.san}`);
       if (item.goal === 'draw' && (pieceCount(game.fen()) < 3)) return end(true, 'The pawn is gone: a draw. Well defended.');
       if (game.isStalemate() && item.goal === 'draw') return end(true, 'Stalemate: a draw.');
-      if (game.isDrawByFiftyMoves()) return end(false, 'Fifty moves without a capture or pawn move: a draw.');
+      if (drawByRule()) return drawByRule();
       board.setMovable(learner, legal);
       fb(`${esc(rm.san)}. Your move.`);
     }, 500);

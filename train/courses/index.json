@@ -1,21 +1,21 @@
 {
  "tactics-fundamentals": {
-  "version": "7c214a32f6",
+  "version": "a3eee15a01",
   "signature": {
    "fen": "r3k3/1p3ppp/8/3N4/8/8/PP3PPP/6K1 w - - 0 1",
    "caption": "A knight fork in the making"
   },
   "sections": 7,
-  "positions": 22
+  "positions": 27
  },
  "checkmate-patterns": {
-  "version": "37f66b3346",
+  "version": "a7e14c40c8",
   "signature": {
    "fen": "6k1/p4ppp/8/8/8/P7/1r3PPP/3R2K1 w - - 0 1",
    "caption": "A back-rank mate in one"
   },
   "sections": 7,
-  "positions": 22
+  "positions": 27
  },
  "opening-repertoire-black": {
   "version": "6a9a7b540b",
@@ -27,39 +27,39 @@
   "positions": 26
  },
  "opening-repertoire-white": {
-  "version": "18d0e5b240",
+  "version": "edfede6310",
   "signature": {
    "fen": "r1bqk1nr/pppp1ppp/2n5/2b1p3/2B1P3/2P2N2/PP1P1PPP/RNBQK2R b KQkq - 0 4",
    "caption": "The Italian set-up with c3"
   },
   "sections": 7,
-  "positions": 15
+  "positions": 25
  },
  "endgame-essentials": {
-  "version": "4eef01293b",
+  "version": "1b062011a5",
   "signature": {
    "fen": "1K6/1P2k3/8/8/8/8/2r5/3R4 w - - 0 1",
    "caption": "Building the bridge"
   },
   "sections": 6,
-  "positions": 7
+  "positions": 21
  },
  "positional-play-strategy": {
-  "version": "5a3470f1f7",
+  "version": "15d9eff9e5",
   "signature": {
    "fen": "2r3k1/pp1nbppp/3p4/4p3/4P3/1B6/PPP2PPP/1N1R2K1 w - - 0 1",
    "caption": "The d5 outpost"
   },
   "sections": 7,
-  "positions": 21
+  "positions": 33
  },
  "calculation-visualization": {
-  "version": "9ff05bec0b",
+  "version": "e1d7e248a6",
   "signature": {
    "fen": "6rk/5Npp/8/8/8/8/6PP/6K1 b - - 0 1",
    "caption": "A smothered mate at the end of a forcing line"
   },
   "sections": 6,
-  "positions": 45
+  "positions": 54
  }
 }

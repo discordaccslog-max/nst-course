@@ -153,7 +153,10 @@ html.ui-large .btn--small { min-height: 48px; font-size: 1rem; }
 .fc-board:focus-visible { box-shadow: 0 0 0 3px var(--focus), 0 24px 44px -32px rgba(var(--shadow-rgb), 0.6); }
 .fc-board__svg { display: block; width: 100%; height: auto; border-radius: 6px; user-select: none; -webkit-user-select: none; }
 .fc-board.is-interactive .fc-board__svg { cursor: pointer; }
-.fc-coord { font: 600 20px var(--font-body); fill: var(--muted); opacity: 0.85; pointer-events: none; }
+.fc-coord { font: 700 20px var(--font-body); pointer-events: none; }
+.fc-coord--on-l { fill: #34493c; }
+.fc-coord--on-d { fill: #0d1610; }
+@media (prefers-color-scheme: dark) { .fc-coord--on-l { fill: #24342a; } .fc-coord--on-d { fill: #f6f1e4; } }
 .fc-piece { transition: transform 0.22s ease; }
 .fc-piece.is-dragging { transition: none; }
 .fc-last { fill: var(--gold); opacity: 0.32; }

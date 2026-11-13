@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
-import { chromium } from 'playwright-core';
+import { chromium, webkit, devices } from 'playwright-core';
 import { Chess } from 'chess.js';
 import { startServer } from '../../tools/dev-server.mjs';
 import '../../js/products.js';
@@ -13,7 +13,7 @@ import { generate, validate } from '../../js/license.js';
 import * as tb from '../../train/tb-core.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const PORT = 8140;
+const PORT = Number(process.env.E2E_PORT) || 8140;
 const BASE = `http://localhost:${PORT}`;
 const products = globalThis.SITE_PRODUCTS;
 const COURSES = Object.keys(products).filter((s) => !products[s].includes);
@@ -21,11 +21,15 @@ const ONLY = process.env.ONLY || '';
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'fc-e2e-'));
 
 const server = await startServer(PORT);
-const browser = await chromium.launch({ channel: 'chrome' });
+// BROWSER=webkit runs every test in WebKit (the engine behind Safari) with an iPhone viewport and touch input.
+const WEBKIT = process.env.BROWSER === 'webkit';
+const browser = WEBKIT ? await webkit.launch() : await chromium.launch({ channel: 'chrome' });
+console.log(WEBKIT ? 'Browser: WebKit, iPhone 13 emulation' : 'Browser: Chrome');
 const results = [];
 
 async function newPage({ mobile = false, sw = false, state = null } = {}) {
-  const ctx = await browser.newContext({
+  if (WEBKIT) mobile = true;
+  const ctx = await browser.newContext(WEBKIT ? { ...devices['iPhone 13'], serviceWorkers: sw ? 'allow' : 'block', acceptDownloads: true } : {
     viewport: mobile ? { width: 390, height: 844 } : { width: 1280, height: 860 },
     isMobile: mobile, hasTouch: mobile, deviceScaleFactor: mobile ? 2 : 1,
     serviceWorkers: sw ? 'allow' : 'block', acceptDownloads: true
@@ -418,8 +422,11 @@ async function walkCourse(slug, mobile) {
       const step = list[i];
       const where = `${slug}/${sec.id}/${i}${mobile ? ' (mobile)' : ''}`;
       await page.goto(`${BASE}/train/#/c/${slug}/s/${sec.id}/${i}`);
+      // Hash navigation re-renders in place: wait for this step's view before touching the board.
+      await page.locator('.tr-topbar__nav .tr-muted', { hasText: `${i + 1} of ${list.length}` }).waitFor();
       if (step.kind === 'lesson') { await page.locator('.tr-lesson__title', { hasText: sec.title }).waitFor(); await noOverflow(page, where); steps++; continue; }
       const it = step.item;
+      try {
       if (it.type === 'example') {
         await page.locator('[data-step="last"]').click();
         await page.locator('.tr-note strong', { hasText: it.moves[it.moves.length - 1].san }).waitFor();
@@ -457,6 +464,10 @@ async function walkCourse(slug, mobile) {
         for (const node of it.line) if (node.color === it.side) await playMove(page, node.uci, mobile);
         await page.locator('.tr-result--good', { hasText: 'Line complete, played from memory.' }).waitFor({ timeout: 20000 });
       }
+      } catch (e) {
+        const fb = await page.locator('.tr-feedback, .tr-explain').allTextContents().catch(() => []);
+        throw new Error(`${where} (${it.type} ${it.id}): ${String(e.message).split('\n')[0]} | trainer shows: ${fb.join(' | ').slice(0, 300)} | fen ${await boardFen(page).catch(() => '?')}`);
+      }
       await noOverflow(page, where);
       steps++;
     }
@@ -471,7 +482,7 @@ async function walkCourse(slug, mobile) {
   return steps;
 }
 
-for (const mobile of [false, true]) {
+for (const mobile of WEBKIT ? [true] : [false, true]) {
   for (const slug of COURSES) {
     await test(`walkthrough ${mobile ? 'mobile' : 'desktop'}: ${slug}`, async () => {
       const steps = await walkCourse(slug, mobile);

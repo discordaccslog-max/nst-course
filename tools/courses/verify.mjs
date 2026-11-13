@@ -12,7 +12,10 @@ import { Chess } from 'chess.js';
 import { Engine, scoreValue } from './engine.mjs';
 
 const CANDIDATES = new URL('../cache/candidates.json', import.meta.url);
-const OUT = new URL('./data/verified.json', import.meta.url);
+const MAIN = new URL('./data/verified.json', import.meta.url);
+// VERIFY_OUT lets a second run (for example a top-up of some SLOTS) write to its own file for merging.
+const OUT = process.env.VERIFY_OUT ? new URL(process.env.VERIFY_OUT, import.meta.url) : MAIN;
+const ONLY_SLOTS = process.env.SLOTS ? process.env.SLOTS.split(',') : null;
 const quota = {
   'tf-fork': 5, 'tf-pin': 5, 'tf-skewer': 5, 'tf-discovered': 5, 'tf-double': 5, 'tf-mixed': 8,
   'cm-backrank': 5, 'cm-queen': 5, 'cm-rook': 5, 'cm-minor': 5, 'cm-sacrifice': 5, 'cm-mixed': 8,
@@ -25,7 +28,7 @@ const MIN_GAP_CP = 150;     // the best wrong move must be at least this much wo
 const DEFENSE_SLACK_CP = 120;
 
 const candidates = JSON.parse(fs.readFileSync(CANDIDATES, 'utf8'));
-const existing = fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : {};
+const existing = fs.existsSync(MAIN) ? JSON.parse(fs.readFileSync(MAIN, 'utf8')) : {};
 const engine = new Engine('single');
 await engine.init({ hash: 256 });
 
@@ -73,8 +76,10 @@ async function verifyPosition(p) {
   return { ok: true, accepted };
 }
 
-const out = {};
+// Start from everything already verified, so a run limited to some SLOTS keeps the other slots intact.
+const out = OUT === MAIN ? { ...existing } : {};
 for (const [slot, want] of Object.entries(quota)) {
+  if (ONLY_SLOTS && !ONLY_SLOTS.includes(slot)) continue;
   out[slot] = existing[slot] ? existing[slot].slice(0, want) : [];
   const have = new Set(out[slot].map((p) => p.id));
   if (out[slot].length >= want) { console.log(slot, 'already verified'); continue; }

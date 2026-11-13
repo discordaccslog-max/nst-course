@@ -73,20 +73,49 @@ function describeMove(chess, mv, learner) {
     else bits.push(`The ${piece} gives check.`);
   } else if (mv.piece === 'k' && !learner) bits.push('The king steps out of danger.');
   if (learner) {
-    // Targets the moved piece now attacks: valuable or undefended enemy pieces.
+    const enemy = other(mv.color);
+    // Skewer through a check: a line piece checks the king and another piece stands behind it.
+    if (mv.san.includes('+') && ['b', 'r', 'q'].includes(mv.piece)) {
+      const behind = beyond(chess, mv.to, kingSquare(chess, enemy));
+      if (behind && behind.color === enemy) bits.push(`Behind the king on the same line stands the ${NAMES[behind.type]} on ${behind.square}: a skewer.`);
+    }
+    // Targets the moved piece now attacks: valuable or undefended enemy pieces, with pins and skewers named.
     const targets = [];
-    for (const p of pieceList(chess, other(mv.color))) {
+    const lines = [];
+    for (const p of pieceList(chess, enemy)) {
       if (p.type === 'k') continue;
-      const atk = chess.attackers(p.square, mv.color);
-      if (!atk.includes(mv.to)) continue;
-      const defended = chess.attackers(p.square, other(mv.color)).length > 0;
+      if (!chess.attackers(p.square, mv.color).includes(mv.to)) continue;
+      const defended = chess.attackers(p.square, enemy).length > 0;
+      if (['b', 'r', 'q'].includes(mv.piece)) {
+        const behind = beyond(chess, mv.to, p.square);
+        if (behind && behind.color === enemy && behind.type === 'k') { lines.push(`It pins the ${NAMES[p.type]} on ${p.square} to the king on ${behind.square}, so the ${NAMES[p.type]} can’t leave the line.`); continue; }
+        if (behind && behind.color === enemy && VALUES[behind.type] > VALUES[p.type]) { lines.push(`It pins the ${NAMES[p.type]} on ${p.square} against the ${NAMES[behind.type]} on ${behind.square}.`); continue; }
+        if (behind && behind.color === enemy && VALUES[p.type] > VALUES[behind.type] && VALUES[p.type] >= 5) { lines.push(`It attacks the ${NAMES[p.type]} on ${p.square}, and the ${NAMES[behind.type]} on ${behind.square} stands behind it: a skewer.`); continue; }
+      }
       if (VALUES[p.type] > VALUES[mv.piece] || !defended) targets.push(`the ${NAMES[p.type]} on ${p.square}${defended ? '' : ' (undefended)'}`);
     }
-    if (targets.length) bits.push(`It ${mv.san.includes('+') ? 'also ' : ''}attacks ${joinList(targets)}.`);
+    const checking = mv.san.includes('+');
+    if (targets.length) bits.push(`${checking || targets.length > 1 ? 'A fork: it ' : 'It '}${checking ? 'also ' : ''}attacks ${joinList(targets)}.`);
+    bits.push(...lines);
   } else if (!bits.length) {
     bits.push(`${who}’s best defense.`);
   }
   return bits.join(' ');
+}
+
+// The first piece on the far side of `target`, continuing the line from `from` through `target`.
+function beyond(chess, from, target) {
+  const df = Math.sign(target.charCodeAt(0) - from.charCodeAt(0)), dr = Math.sign(Number(target[1]) - Number(from[1]));
+  const sameLine = from[0] === target[0] || from[1] === target[1] || Math.abs(target.charCodeAt(0) - from.charCodeAt(0)) === Math.abs(Number(target[1]) - Number(from[1]));
+  if (!sameLine) return null;
+  let f = target.charCodeAt(0) - 97 + df, r = Number(target[1]) + dr;
+  while (f >= 0 && f < 8 && r >= 1 && r <= 8) {
+    const sq = String.fromCharCode(97 + f) + r;
+    const p = chess.get(sq);
+    if (p) return { ...p, square: sq };
+    f += df; r += dr;
+  }
+  return null;
 }
 
 function kingSquare(chess, color) {
@@ -384,7 +413,7 @@ function structureItems(kinds, offset = 0, used) {
         if (f.bishops.length) {
           const b = f.bishops[0];
           const choices = ['Good bishop', 'Bad bishop'];
-          item = { ...base, mode: 'choice', highlight: [b.sq], question: `Is ${COLOR[b.color]}’s bishop on ${b.sq} a good bishop or a bad bishop?`, choices, answer: b.bad ? 1 : 0, explanation: `Of ${COLOR[b.color]}’s ${b.total} pawns, ${b.same} stand on ${b.dark ? 'dark' : 'light'} squares, the same color as the bishop. ${b.bad ? 'They block it and leave the other color weak, so it is a bad bishop.' : 'Its pawns are mostly on the other color, leaving it free to move, so it is a good bishop.'}` };
+          item = { ...base, mode: 'choice', highlight: [b.sq], question: `Is ${COLOR[b.color]}’s bishop on ${b.sq} a good bishop or a bad bishop?`, choices, answer: b.bad ? 1 : 0, explanation: `Of ${COLOR[b.color]}’s ${b.total} pawns, ${b.same} ${b.same === 1 ? "stands" : "stand"} on ${b.dark ? 'dark' : 'light'} squares, the same color as the bishop. ${b.bad ? 'They block it and leave the other color weak, so it is a bad bishop.' : 'Its pawns are mostly on the other color, leaving it free to move, so it is a good bishop.'}` };
         }
       }
       if (!item) continue;

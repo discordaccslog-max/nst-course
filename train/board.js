@@ -104,11 +104,13 @@ export class Board {
     for (let i = 0; i < 8; i++) {
       const fileSq = this.orientation === 'w' ? FILES[i] + '1' : FILES[7 - i] + '8';
       const [fx] = this.xy(fileSq);
-      const t = el('text', { x: fx + 92, y: 792, class: 'fc-coord', 'text-anchor': 'end' }, c);
+      const fileDark = (FILES.indexOf(fileSq[0]) + Number(fileSq[1])) % 2 === 1;
+      const t = el('text', { x: fx + 92, y: 792, class: `fc-coord ${fileDark ? 'fc-coord--on-d' : 'fc-coord--on-l'}`, 'text-anchor': 'end' }, c);
       t.textContent = fileSq[0];
       const rankSq = this.orientation === 'w' ? 'a' + (8 - i) : 'h' + (i + 1);
       const [, ry] = this.xy(rankSq);
-      const t2 = el('text', { x: 6, y: ry + 22, class: 'fc-coord' }, c);
+      const rankDark = (FILES.indexOf(rankSq[0]) + Number(rankSq[1])) % 2 === 1;
+      const t2 = el('text', { x: 6, y: ry + 22, class: `fc-coord ${rankDark ? 'fc-coord--on-d' : 'fc-coord--on-l'}` }, c);
       t2.textContent = rankSq[1];
     }
   }
